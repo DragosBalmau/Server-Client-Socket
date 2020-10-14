@@ -20,7 +20,7 @@ int check(int expresion, char* errormsg){
     return 1;
 }
 
-void recvAll(int socket, void *buffer, size_t length, int target, FILE *fileOutput)
+void recvAll(int socket, void *buffer, size_t length, int target)
 {
     size_t bytesRecv = 0;
     int sumOfBytesReceived = 0;
@@ -31,24 +31,37 @@ void recvAll(int socket, void *buffer, size_t length, int target, FILE *fileOutp
 
         sumOfBytesReceived += bytesRecv;
 
-        if(target != sizeof(int))
-            fwrite(buffer, 1, sizeof(buffer[0]) * bytesRecv, fileOutput);
-
         if(sumOfBytesReceived == target)
                 return;
     }
-
-    
+ 
 }
 
 void receiveDataBinary(int sockfd, FILE *fileOutput){
 
     char buffer[SIZE];
-    int dimFileInput = 0;
 
-    recvAll(sockfd, &dimFileInput, sizeof(dimFileInput), sizeof(int), fileOutput);
+    int dimFileInput = 0, dimFileOutput = 0;
+
+    recvAll(sockfd, &dimFileInput, sizeof(dimFileInput), sizeof(int));
+
+    int dataReceived = 0;
     
-    recvAll(sockfd, buffer, SIZE, dimFileInput, fileOutput);
+    while (1) {
+
+        check(dataReceived = recv(sockfd, buffer, SIZE, 0),"[-]Data not received");
+
+        dimFileOutput += dataReceived;
+
+        fwrite(buffer, 1, sizeof(buffer[0]) * dataReceived, fileOutput);
+
+        if(dimFileOutput == dimFileInput)
+            return;
+
+        memset(buffer, 0, sizeof(buffer));
+    }
+
+    return;
 
 }
 
