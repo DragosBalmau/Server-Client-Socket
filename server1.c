@@ -31,8 +31,12 @@ void recvAll(int socket, void *buffer, size_t length, int target)
 
         sumOfBytesReceived += bytesRecv;
 
+        buffer += bytesRecv;
+        length -= bytesRecv;
+
         if(sumOfBytesReceived == target)
                 return;
+
     }
  
 }
