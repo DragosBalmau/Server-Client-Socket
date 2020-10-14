@@ -28,14 +28,19 @@ void receiveDataBinary(int sockfd, FILE *fileOutput){
 
     int dimFileInput = 0, dimFileOutput = 0;
     int bytesNumberReceived = 0;
+    int sumOfBytesReceived = 0; 
+    
     while(1){
 
         check(bytesNumberReceived = recv(sockfd, &dimFileInput, sizeof(dimFileInput), 0), "[-]Dim fileInput not received");
 
-        if(bytesNumberReceived == sizeof(int))
+        sumOfBytesReceived += bytesNumberReceived;
+
+        if(sumOfBytesReceived == sizeof(int))
             break;
     
     }
+    
     int dataReceived = 0;
     
     while (1) {
