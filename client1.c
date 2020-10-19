@@ -6,7 +6,8 @@
 
 #define IP "127.0.0.1"
 #define PORT 8080
-#define SIZE 300
+#define SIZE 1024
+
 
 int getFileDim(FILE *fileInput){
 
@@ -46,13 +47,23 @@ int check(int expresion, char* errormsg){
     return 1;
 }
 
-void sendDataBinary(FILE *fileInput, int sockfd){
+void sendDataBinary(int sockfd){
+
+
+    FILE *fileInput = fopen("binar.bin", "rb");
+
+    if (fileInput == NULL) {
+      perror("[-]Reading file failed");
+      exit(1);
+    }
 
     char data[SIZE] = {0};
 
     int dimFile = getFileDim(fileInput);
 
     check(sendAll(sockfd, &dimFile, sizeof(dimFile), 0), "[-]Dim fileInput not sent");
+
+    //printf("%d\n", dimFile);
 
     int howmuchread = 0;
 
@@ -63,8 +74,12 @@ void sendDataBinary(FILE *fileInput, int sockfd){
 
         check(sendAll(sockfd, data, sizeof(data[0]) * howmuchread, 0),"[-]Error in sending file.");
         
+        //printf("%d\n", howmuchread);
+
         memset(data, 0, sizeof(data));
     }
+
+    fclose(fileInput);
 
     
 }
@@ -85,17 +100,11 @@ int main(){
     check(connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)),"[-]Connection to server failed");
     printf("[+]Connected to Server.\n");
 
-      FILE *fileInput = fopen("binar.bin", "rb");
-      if (fileInput == NULL) {
-          perror("[-]Reading file failed");
-          exit(1);
-      }
+    sendDataBinary(sockfd);
 
-    sendDataBinary(fileInput, sockfd);
     printf("[+]File data sent successfully.\n");
 
     printf("[+]Closing the connection.\n");
-    fclose(fileInput);
     close(sockfd);
 
     return 0;
