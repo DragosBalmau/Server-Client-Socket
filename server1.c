@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #define IP "127.0.0.1"
 #define PORT 8080
@@ -41,7 +42,11 @@ void recvAll(int socket, void *buffer, size_t length, int target)
  
 }
 
-void receiveDataBinary(int sockfd, FILE *fileOutput){
+void* receiveDataBinary(void* p_sockfd){
+
+    int sockfd = *((int *)p_sockfd);
+
+    FILE *fileOutput = fopen("data.out", "wb");
 
     char buffer[SIZE];
 
@@ -59,13 +64,16 @@ void receiveDataBinary(int sockfd, FILE *fileOutput){
 
         fwrite(buffer, 1, sizeof(buffer[0]) * dataReceived, fileOutput);
 
+        //printf("%s\n", buffer);
+
         if(dimFileOutput == dimFileInput)
-            return;
+            return NULL;
 
         memset(buffer, 0, sizeof(buffer));
     }
 
-    return;
+    fclose(fileOutput);
+    return NULL;
 
 }
 
@@ -93,12 +101,16 @@ int main(){
     addr_size = sizeof(new_addr);
     check(new_sock = accept(sockfd, (struct sockaddr*)&new_addr, &addr_size),"[-]Accept failed");
 
-    FILE *fileOutput = fopen("data.out", "wb");
+    pthread_t t;
 
-    receiveDataBinary(new_sock, fileOutput);
+    int *server_sock = malloc(sizeof(int));
+    *server_sock = sockfd;
+
+    pthread_create(&t, NULL, receiveDataBinary, server_sock);
+
+    //receiveDataBinary(new_sock, fileOutput);
     printf("[+]Data written in the file successfully.\n");
 
-    fclose(fileOutput);
     close(sockfd);
 
     return 0;
