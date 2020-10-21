@@ -107,25 +107,25 @@ int main(){
 
     while(1){
 
-    	pthread_t thread;
+		pthread_t thread;
 
-    	struct sockaddr server_addr;
-    	socklen_t addr_size  = sizeof(server_addr);
-    	int new_sock;
+		struct sockaddr server_addr;
+		socklen_t addr_size  = sizeof(server_addr);
+		int new_sock;
 
-	    check(new_sock = accept(server_sock, (struct sockaddr*)&server_addr, &addr_size),"[-]Accept failed");
+		check(new_sock = accept(server_sock, (struct sockaddr*)&server_addr, &addr_size),"[-]Accept failed");
 
-	    struct thread_data_t *p_pthread_arg = malloc(sizeof(struct thread_data_t));
+		struct thread_data_t *p_pthread_arg = malloc(sizeof(struct thread_data_t));
 		p_pthread_arg->new_addr = malloc(sizeof(struct sockaddr));
 
 		memcpy(p_pthread_arg->new_addr, &server_addr, addr_size);
 		p_pthread_arg->new_socket = new_sock;
 
-	    pthread_create(&thread, NULL, receiveDataBinary, (void *) p_pthread_arg);
-	  	
-	    printf("[+]Data written in the file successfully with thread\n");
+		pthread_create(&thread, NULL, receiveDataBinary, (void *) p_pthread_arg);
+			
+		printf("[+]Data written in the file successfully with thread\n");
 
-	    pthread_detach(thread);
+		pthread_detach(thread);
 
 	}
 
