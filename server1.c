@@ -14,7 +14,7 @@
 struct thread_data_t {
 
     int new_socket;
-    struct sockaddr_in* new_addr;
+    struct sockaddr new_addr;
 
 };
 
@@ -79,8 +79,8 @@ void* receiveDataBinary(void* p_pthread_arg){
         memset(buffer, 0, sizeof(buffer));
     }
 
- 
-    //pthread_exit(0);
+
+    free(p_pthread_arg);
     fclose(fileOutput);
    
     return NULL;
@@ -107,27 +107,27 @@ int main(){
 
     while(1){
 
-		pthread_t thread;
+        pthread_t thread;
 
-		struct sockaddr server_addr;
-		socklen_t addr_size  = sizeof(server_addr);
-		int new_sock;
+        struct sockaddr server_addr;
+        socklen_t addr_size  = sizeof(server_addr);
+        int new_sock;
 
-		check(new_sock = accept(server_sock, (struct sockaddr*)&server_addr, &addr_size),"[-]Accept failed");
+        check(new_sock = accept(server_sock, (struct sockaddr*)&server_addr, &addr_size),"[-]Accept failed");
 
-		struct thread_data_t *p_pthread_arg = malloc(sizeof(struct thread_data_t));
-		p_pthread_arg->new_addr = malloc(sizeof(struct sockaddr));
+        struct thread_data_t *p_pthread_arg = malloc(sizeof(struct thread_data_t));
 
-		memcpy(p_pthread_arg->new_addr, &server_addr, addr_size);
-		p_pthread_arg->new_socket = new_sock;
+        p_pthread_arg->new_addr = server_addr;
+        p_pthread_arg->new_socket = new_sock;
 
-		pthread_create(&thread, NULL, receiveDataBinary, (void *) p_pthread_arg);
-			
-		printf("[+]Data written in the file successfully with thread\n");
+        check(!pthread_create(&thread, NULL, receiveDataBinary, (void *) p_pthread_arg),"[-]Thread not created");
 
-		pthread_detach(thread);
+        printf("[+]Data written in the file successfully with thread\n");
 
-	}
+        pthread_detach(thread);
+
+
+    }
 
     return 0;
 }
