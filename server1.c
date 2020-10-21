@@ -9,10 +9,12 @@
 #define PORT 8080
 #define SIZE 1024
 
+#define MAXPENDING 50
+
 struct thread_data_t {
 
     int new_socket;
-    struct sockaddr_in new_addr;
+    struct sockaddr_in* new_addr;
 
 };
 
@@ -49,9 +51,9 @@ void recvAll(int socket, void *buffer, size_t length, int target)
  
 }
 
-void* receiveDataBinary(void* p_sockfd){
+void* receiveDataBinary(void* p_pthread_arg){
 
-    int sockfd = *((int *)p_sockfd);
+    struct thread_data_t pthread_arg = *((struct thread_data_t *)p_pthread_arg);
 
     FILE *fileOutput = fopen("data.out", "wb");
 
@@ -59,13 +61,13 @@ void* receiveDataBinary(void* p_sockfd){
 
     int dimFileInput = 0, dimFileOutput = 0;
 
-    recvAll(sockfd, &dimFileInput, sizeof(dimFileInput), sizeof(int));
+    recvAll(pthread_arg.new_socket, &dimFileInput, sizeof(dimFileInput), sizeof(int));
 
     int dataReceived = 0;
     
     while (1) {
 
-        check(dataReceived = recv(sockfd, buffer, SIZE, 0),"[-]Data not received");
+        check(dataReceived = recv(pthread_arg.new_socket, buffer, SIZE, 0),"[-]Data not received");
 
         dimFileOutput += dataReceived;
 
@@ -77,8 +79,8 @@ void* receiveDataBinary(void* p_sockfd){
         memset(buffer, 0, sizeof(buffer));
     }
 
-    close(sockfd);
-    pthread_exit(0);
+ 
+    //pthread_exit(0);
     fclose(fileOutput);
    
     return NULL;
@@ -87,13 +89,8 @@ void* receiveDataBinary(void* p_sockfd){
 
 int main(){
 
-    struct thread_data_t pthread_arg;
-    pthread_t thread;
     int server_sock;
-
     struct sockaddr_in server_addr;
-    socklen_t addr_size;
-    int opt = 1;
 
     check(server_sock = socket(AF_INET, SOCK_STREAM, 0), "[-]Socket failed");
     printf("[+]Server socket created successfully.\n");
@@ -102,25 +99,36 @@ int main(){
     server_addr.sin_port = PORT;
     server_addr.sin_addr.s_addr = inet_addr(IP);
 
-    setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
-
     check(bind(server_sock, (struct sockaddr*)&(server_addr), sizeof(server_addr)),"[-]Bind failed");
     printf("[+]Binding successfull.\n");
 
-    check(listen(server_sock , 50) == 0,"[-]Listen failed");
+    check(listen(server_sock , MAXPENDING) == 0,"[-]Listen failed");
     printf("[+]Listening....\n");
 
     while(1){
 
-	    addr_size = sizeof(pthread_arg.new_addr);
+    	pthread_t thread;
 
-	    check(pthread_arg.new_socket = accept(server_sock, (struct sockaddr*)&pthread_arg.new_addr, &addr_size),"[-]Accept failed");
+    	struct sockaddr server_addr;
+    	socklen_t addr_size  = sizeof(server_addr);
+    	int new_sock;
 
-	    pthread_create(&thread, NULL, receiveDataBinary, &pthread_arg.new_socket);
+	    check(new_sock = accept(server_sock, (struct sockaddr*)&server_addr, &addr_size),"[-]Accept failed");
+
+	    struct thread_data_t *p_pthread_arg = malloc(sizeof(struct thread_data_t));
+		p_pthread_arg->new_addr = malloc(sizeof(struct sockaddr));
+
+		memcpy(p_pthread_arg->new_addr, &server_addr, addr_size);
+		p_pthread_arg->new_socket = new_sock;
+
+	    pthread_create(&thread, NULL, receiveDataBinary, (void *) p_pthread_arg);
 	  	
 	    printf("[+]Data written in the file successfully with thread\n");
+
+	    pthread_detach(thread);
 
 	}
 
     return 0;
 }
+
